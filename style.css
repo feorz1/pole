@@ -1,1 +1,495 @@
-/* Стили перенесены сюда позже */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: radial-gradient(circle at top, #232b5b 0, #050814 45%, #02030a 100%);
+    color: #f5f5f5;
+}
+
+.app {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    padding: 12px 20px;
+    background: rgba(5, 8, 20, 0.9);
+    border-bottom: 1px solid #31395c;
+    backdrop-filter: blur(10px);
+}
+
+.header h1 {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.main {
+    flex: 1;
+    display: flex;
+    gap: 12px;
+    padding: 12px;
+}
+
+/* Левая колонка */
+.left-column {
+    flex: 3;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Игроки горизонтально */
+.players-bar {
+    background: rgba(12, 17, 40, 0.95);
+    border-radius: 10px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border: 1px solid rgba(69, 95, 160, 0.5);
+}
+
+.players-row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 8px;
+    padding-bottom: 4px;
+}
+
+.players-row::-webkit-scrollbar {
+    height: 6px;
+}
+.players-row::-webkit-scrollbar-track {
+    background: #101424;
+}
+.players-row::-webkit-scrollbar-thumb {
+    background: #3e4a7a;
+    border-radius: 3px;
+}
+
+.player-card {
+    position: relative;
+    min-width: 110px;
+    max-width: 110px;
+    background: #202746;
+    border-radius: 8px;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    border: 2px solid transparent;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.player-card.active {
+    border-color: #3fa9f5;
+    transform: translateY(-1px);
+}
+
+.player-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: #333b66;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.player-name {
+    width: 100%;
+    font-size: 12px;
+    text-align: center;
+    background: transparent;
+    border: none;
+    color: #f5f5f5;
+    outline: none;
+    border-bottom: 1px dashed #555b87;
+}
+
+.player-score {
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+.player-remove {
+    position: absolute;
+    top: 2px;
+    right: 4px;
+    border: none;
+    background: transparent;
+    color: #ff6b6b;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+/* Кнопка добавления игрока */
+.btn-add-player {
+    margin-top: 4px;
+    align-self: flex-start;
+    background: #2e7d32;
+    font-size: 12px;
+}
+
+/* Игровая зона */
+.game-area {
+    flex: 1;
+    background: rgba(12, 17, 40, 0.95);
+    border-radius: 10px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border: 1px solid rgba(69, 95, 160, 0.5);
+}
+
+.hint-container {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.hint-label {
+    font-size: 13px;
+    opacity: 0.8;
+    min-width: 60px;
+}
+
+.hint-text {
+    font-size: 14px;
+}
+
+.word-container {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    padding: 4px 0;
+}
+
+.letter-cell {
+    width: 32px;
+    height: 42px;
+    border-radius: 6px;
+    border: 1px solid #31395c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    background: #101424;
+}
+
+.letter-cell.empty-space {
+    border: none;
+    background: transparent;
+}
+
+.letter-cell.openable {
+    cursor: pointer;
+    box-shadow: 0 0 0 1px #3fa9f5;
+}
+.letter-cell.openable:hover {
+    background: #22345a;
+}
+
+/* Очки + барабан */
+.score-and-wheel {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.score-panel {
+    min-width: 160px;
+    background: #101424;
+    border-radius: 10px;
+    padding: 8px 10px;
+}
+
+.score-label {
+    font-size: 13px;
+    opacity: 0.8;
+}
+
+.score-value {
+    font-size: 28px;
+    font-weight: 600;
+    margin-top: 4px;
+}
+
+.wheel-wrapper {
+    position: relative;
+    width: 320px;
+    height: 360px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.wheel-pointer {
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-bottom: 16px solid #ff5c5c;
+    z-index: 2;
+}
+
+.spin-result {
+    font-size: 14px;
+    min-height: 18px;
+    text-align: center;
+}
+
+/* Клавиатура */
+.keyboard {
+    display: grid;
+    grid-template-columns: repeat(11, 1fr);
+    gap: 4px;
+    margin-top: 8px;
+}
+
+.key {
+    padding: 6px 0;
+    text-align: center;
+    background: #202746;
+    border-radius: 6px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 14px;
+    transition: background 0.15s ease, transform 0.1s ease, opacity 0.1s ease;
+}
+
+.key:hover {
+    background: #3f51b5;
+    transform: translateY(-1px);
+}
+
+.key.disabled {
+    opacity: 0.35;
+    cursor: default;
+    transform: none;
+}
+
+/* Нижние кнопки */
+.controls-row {
+    display: flex;
+    justify-content: flex-start;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+/* Сайдбар */
+.sidebar {
+    flex: 1;
+    background: rgba(12, 17, 40, 0.95);
+    border-radius: 10px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border: 1px solid rgba(69, 95, 160, 0.5);
+}
+
+.sidebar h2 {
+    font-size: 16px;
+    margin-bottom: 4px;
+}
+
+.sidebar-section {
+    border-top: 1px solid #282f4f;
+    padding-top: 8px;
+    margin-top: 4px;
+}
+
+.sidebar-section h3 {
+    font-size: 14px;
+    margin-bottom: 6px;
+}
+
+.field-label {
+    display: block;
+    font-size: 12px;
+    opacity: 0.8;
+    margin-top: 4px;
+    margin-bottom: 2px;
+}
+
+.input,
+.textarea {
+    width: 100%;
+    background: #101424;
+    border-radius: 6px;
+    border: 1px solid #31395c;
+    color: #f5f5f5;
+    font-size: 13px;
+    padding: 4px 6px;
+    resize: vertical;
+}
+
+.textarea {
+    min-height: 60px;
+}
+
+/* Редактор призов */
+.prizes-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.prize-row {
+    display: grid;
+    grid-template-columns: 70px 1fr;
+    gap: 4px;
+}
+
+.prize-input {
+    width: 100%;
+    background: #101424;
+    border-radius: 4px;
+    border: 1px solid #31395c;
+    color: #f5f5f5;
+    font-size: 12px;
+    padding: 2px 4px;
+}
+
+/* Кнопки сайдбара */
+.sidebar-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.file-label {
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid #31395c;
+    cursor: pointer;
+}
+.file-label input {
+    display: none;
+}
+
+/* Кнопки */
+.btn {
+    border: none;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 13px;
+    cursor: pointer;
+    background: #3f51b5;
+    color: #fff;
+    transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.btn:hover {
+    background: #5361c4;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+}
+
+.btn-primary {
+    background: #3f8efc;
+}
+
+.btn-secondary {
+    background: #3f51b5;
+}
+
+.btn-small {
+    padding: 4px 8px;
+    font-size: 12px;
+}
+
+/* Модалка */
+.modal {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    position: relative;
+    background: #151b32;
+    border-radius: 10px;
+    padding: 12px;
+    width: 360px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+.modal-content h2 {
+    font-size: 16px;
+    margin-bottom: 8px;
+}
+
+.prizes-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 8px;
+}
+
+.prizes-table th,
+.prizes-table td {
+    border: 1px solid #31395c;
+    padding: 4px 6px;
+    font-size: 13px;
+}
+
+/* Адаптив */
+@media (max-width: 900px) {
+    .main {
+        flex-direction: column;
+    }
+    .left-column {
+        order: 1;
+    }
+    .sidebar {
+        order: 2;
+    }
+    .wheel-wrapper {
+        width: 260px;
+        height: 320px;
+    }
+    #wheelCanvas {
+        width: 260px;
+        height: 260px;
+    }
+}
