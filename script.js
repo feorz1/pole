@@ -37,6 +37,7 @@ let currentWord = "КОМПЬЮТЕР";
 let currentHint = "Электронная машина для обработки информации";
 let openedPositions = [];      // boolean по индексам букв
 let usedLetters = new Set();   // набор использованных букв
+let newlyOpenedLetters = new Set(); // индексы только что открытых букв для анимации
 
 // барабан
 const wheelCanvas = document.getElementById("wheelCanvas");
@@ -47,7 +48,7 @@ const SECTOR_COUNT = 24;
 const sectorAngle = 2 * Math.PI / SECTOR_COUNT;
 
 // список секторов (значение и тип)
-const wheelSectors = [
+const wheelSectorsBase = [
     { type: "points", value: 100 },
     { type: "points", value: 150 },
     { type: "points", value: 200 },
@@ -73,6 +74,19 @@ const wheelSectors = [
     { type: "zero",   value: 0 },   // 0
     { type: "empty",  value: 0 }    // пустой
 ];
+
+// Функция перемешивания массива (Fisher-Yates shuffle)
+function shuffleArray(array) {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+}
+
+// Перемешанные секторы барабана
+const wheelSectors = shuffleArray(wheelSectorsBase);
 
 let wheelRotation = 0;      // текущий угол поворота
 let isSpinning = false;
@@ -101,10 +115,23 @@ const prizesEditor = document.getElementById("prizesEditor");
 
 const saveConfigBtn = document.getElementById("saveConfigBtn");
 const loadConfigInput = document.getElementById("loadConfigInput");
+const loadFileBtn = document.getElementById("loadFileBtn");
+const fileStatus = document.getElementById("fileStatus");
+
+const settingsModal = document.getElementById("settingsModal");
+const settingsButton = document.getElementById("settingsButton");
+const closeSettingsBtn = document.getElementById("closeSettingsBtn");
+const addPrizeBtn = document.getElementById("addPrizeBtn");
 
 const prizesModal = document.getElementById("prizesModal");
 const prizesTableBody = document.getElementById("prizesTableBody");
 const closePrizesModalBtn = document.getElementById("closePrizesModal");
+
+const winModal = document.getElementById("winModal");
+const winWordText = document.getElementById("winWordText");
+const winScoreText = document.getElementById("winScoreText");
+const winPrizesTableBody = document.getElementById("winPrizesTableBody");
+const newGameBtn = document.getElementById("newGameBtn");
 
 // ---------------------
 // Утилиты
@@ -129,6 +156,11 @@ function cycleToNextPlayer() {
     const idx = players.findIndex(p => p.id === activePlayerId);
     const nextIdx = (idx + 1) % players.length;
     setActivePlayer(players[nextIdx].id);
+    // Сбрасываем состояние барабана при смене игрока
+    lastSector = null;
+    lastPointsValue = null;
+    isOpenAnyMode = false;
+    updateSpinButtonState(); // Включаем кнопку при смене игрока
 }
 
 function formatPoints(p) {
@@ -236,7 +268,7 @@ function renderPlayers() {
 
         const score = document.createElement("div");
         score.className = "player-score";
-        score.textContent = `Очки: ${player.score}`;
+        score.textContent = player.score;
         card.appendChild(score);
 
         playersContainer.appendChild(card);
@@ -255,9 +287,12 @@ function initWordState() {
         openedPositions.push(false);
     }
     usedLetters.clear();
+    newlyOpenedLetters.clear();
 }
 
 function renderWord() {
+    if (!wordContainerEl || !currentWord) return;
+    
     wordContainerEl.innerHTML = "";
     for (let i = 0; i < currentWord.length; i++) {
         const ch = currentWord[i];
@@ -268,9 +303,21 @@ function renderWord() {
             cell.className = "letter-cell";
             if (openedPositions[i]) {
                 cell.textContent = ch;
-            } else if (isOpenAnyMode) {
-                cell.classList.add("openable");
-                cell.addEventListener("click", () => handleOpenAnyClick(i));
+                // Добавляем анимацию, если буква только что открыта
+                if (newlyOpenedLetters.has(i)) {
+                    cell.classList.add("letter-animate");
+                    // Удаляем из Set после небольшой задержки, чтобы анимация успела запуститься
+                    setTimeout(() => {
+                        newlyOpenedLetters.delete(i);
+                    }, 600); // Увеличиваем задержку до длительности анимации
+                }
+            } else {
+                // Показываем закрытую букву как пустую ячейку с рамкой
+                // Всегда создаем ячейку, даже если буква не открыта
+                if (isOpenAnyMode) {
+                    cell.classList.add("openable");
+                    cell.addEventListener("click", () => handleOpenAnyClick(i));
+                }
             }
         }
         wordContainerEl.appendChild(cell);
@@ -328,7 +375,10 @@ function handleLetterClick(letter) {
     let found = 0;
     for (let i = 0; i < upper.length; i++) {
         if (upper[i] === letter) {
-            openedPositions[i] = true;
+            if (!openedPositions[i]) {
+                openedPositions[i] = true;
+                newlyOpenedLetters.add(i); // Отмечаем для анимации
+            }
             found++;
         }
     }
@@ -352,17 +402,22 @@ function handleLetterClick(letter) {
     lastSector = null;
     lastPointsValue = null;
     setKeyboardEnabled(false);
+    updateSpinButtonState(); // Включаем кнопку после выбора буквы
 }
 
 function handleOpenAnyClick(index) {
     if (!isOpenAnyMode) return;
     if (index < 0 || index >= currentWord.length) return;
     if (currentWord[index] === " ") return;
-    openedPositions[index] = true;
+    if (!openedPositions[index]) {
+        openedPositions[index] = true;
+        newlyOpenedLetters.add(index); // Отмечаем для анимации
+    }
     isOpenAnyMode = false;
     renderWord();
     lastResultEl.textContent = "Буква открыта бесплатно.";
     setKeyboardEnabled(false);
+    updateSpinButtonState(); // Включаем кнопку после открытия буквы
     if (checkWin()) {
         lastResultEl.textContent += " — СЛОВО ОТГАДАНО!";
     }
@@ -374,7 +429,72 @@ function checkWin() {
             return false;
         }
     }
+    
+    // Если слово угадано, показываем модальное окно
+    showWinModal();
     return true;
+}
+
+function showWinModal() {
+    const active = getActivePlayer();
+    const score = active ? active.score : 0;
+    
+    // Заполняем информацию о победе
+    winWordText.textContent = currentWord.toUpperCase();
+    winScoreText.textContent = score;
+    
+    // Заполняем доступные призы
+    winPrizesTableBody.innerHTML = "";
+    const availablePrizes = PRIZES.filter(p => p.points > 0 && score >= p.points)
+        .sort((a, b) => a.points - b.points);
+    
+    if (availablePrizes.length === 0) {
+        const row = document.createElement("tr");
+        row.innerHTML = `<td colspan="2" style="text-align: center; color: #999;">Нет доступных призов</td>`;
+        winPrizesTableBody.appendChild(row);
+    } else {
+        availablePrizes.forEach(prize => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${prize.points}</td>
+                <td>${prize.name || "—"}</td>
+            `;
+            winPrizesTableBody.appendChild(row);
+        });
+    }
+    
+    // Показываем модальное окно
+    winModal.classList.remove("hidden");
+    setKeyboardEnabled(false);
+}
+
+function startNewGame() {
+    // Закрываем модальное окно
+    winModal.classList.add("hidden");
+    
+    // Сбрасываем игру
+    usedLetters.clear();
+    newlyOpenedLetters.clear();
+    openedPositions = new Array(currentWord.length).fill(false);
+    lastSector = null;
+    lastPointsValue = null;
+    isOpenAnyMode = false;
+    isSpinning = false;
+    
+    // Обнуляем очки всех игроков
+    players.forEach(p => {
+        p.score = 0;
+    });
+    
+    // Обновляем интерфейс
+    renderWord();
+    renderPlayers();
+    updateScorePanel();
+    refreshKeyboardDisabled();
+    lastResultEl.textContent = "Новая игра начата!";
+    
+    // Перерисовываем барабан
+    drawWheel();
 }
 
 // ---------------------
@@ -394,18 +514,27 @@ function drawWheel() {
 
         const even = i % 2 === 0;
         let color;
+        let textColor;
+        
         if (sector.type === "points") {
-            color = even ? "#f4d03f" : "#f5b041";
+            // Чередование белого и синего для очков
+            color = even ? "#ffffff" : "#2196F3";
+            textColor = even ? "#000000" : "#ffffff";
         } else if (sector.type === "x2") {
-            color = "#27ae60";
+            color = "#4CAF50"; // зеленый
+            textColor = "#ffffff";
         } else if (sector.type === "plus") {
-            color = "#3498db";
+            color = "#FFC107"; // желтый
+            textColor = "#000000";
         } else if (sector.type === "bankrupt") {
-            color = "#e74c3c";
+            color = "#F44336"; // красный
+            textColor = "#ffffff";
         } else if (sector.type === "zero") {
-            color = "#9b59b6";
+            color = "#9E9E9E"; // серый
+            textColor = "#ffffff";
         } else {
-            color = "#7f8c8d";
+            color = "#E0E0E0"; // светло-серый для пустого
+            textColor = "#666666";
         }
 
         wheelCtx.beginPath();
@@ -414,8 +543,8 @@ function drawWheel() {
         wheelCtx.closePath();
         wheelCtx.fillStyle = color;
         wheelCtx.fill();
-        wheelCtx.strokeStyle = "#222";
-        wheelCtx.lineWidth = 1;
+        wheelCtx.strokeStyle = "#CCCCCC";
+        wheelCtx.lineWidth = 2;
         wheelCtx.stroke();
 
         // текст
@@ -424,8 +553,8 @@ function drawWheel() {
         wheelCtx.rotate(midAngle);
         wheelCtx.translate(WHEEL_RADIUS * 0.65, 0);
         wheelCtx.rotate(Math.PI / 2);
-        wheelCtx.fillStyle = "#000";
-        wheelCtx.font = "bold 14px system-ui";
+        wheelCtx.fillStyle = textColor;
+        wheelCtx.font = "bold 16px system-ui";
         wheelCtx.textAlign = "center";
         wheelCtx.textBaseline = "middle";
 
@@ -450,6 +579,25 @@ function drawWheel() {
     wheelCtx.restore();
 }
 
+function updateSpinButtonState() {
+    // Отключаем кнопку, если:
+    // 1. Барабан крутится
+    // 2. Выпали очки и нужно выбрать букву
+    // 3. В режиме открытия любой буквы
+    const shouldDisable = isSpinning || 
+                         (lastSector && lastSector.type === "points" && lastPointsValue !== null) ||
+                         isOpenAnyMode;
+    
+    if (spinButton) {
+        spinButton.disabled = shouldDisable;
+        if (shouldDisable) {
+            spinButton.classList.add("disabled");
+        } else {
+            spinButton.classList.remove("disabled");
+        }
+    }
+}
+
 function spinWheel() {
     if (isSpinning) return;
     if (!getActivePlayer()) return;
@@ -461,6 +609,7 @@ function spinWheel() {
     lastPointsValue = null;
     lastResultEl.textContent = "";
     setKeyboardEnabled(false);
+    updateSpinButtonState();
 
     const extraRotations = 4 + Math.random() * 3;
     const startRotation = wheelRotation;
@@ -483,6 +632,7 @@ function spinWheel() {
             drawWheel();
             isSpinning = false;
             determineWheelResult();
+            updateSpinButtonState();
         }
     }
 
@@ -504,6 +654,7 @@ function determineWheelResult() {
         lastPointsValue = sector.value;
         lastResultEl.textContent = `Выпало: ${sector.value} очков. Выберите букву.`;
         setKeyboardEnabled(true);
+        updateSpinButtonState(); // Отключаем кнопку, нужно выбрать букву
     } else if (sector.type === "x2") {
         const active = getActivePlayer();
         if (active) {
@@ -511,11 +662,13 @@ function determineWheelResult() {
             lastResultEl.textContent = "Выпало: x2 — очки активного игрока удвоены.";
         }
         setKeyboardEnabled(false);
+        updateSpinButtonState(); // Включаем кнопку
     } else if (sector.type === "plus") {
         isOpenAnyMode = true;
         renderWord();
         lastResultEl.textContent = "Выпало: + — кликните по любой закрытой букве, чтобы открыть её.";
         setKeyboardEnabled(false);
+        updateSpinButtonState(); // Отключаем кнопку, нужно выбрать букву
     } else if (sector.type === "bankrupt") {
         const active = getActivePlayer();
         if (active) {
@@ -524,13 +677,16 @@ function determineWheelResult() {
             cycleToNextPlayer();
         }
         setKeyboardEnabled(false);
+        updateSpinButtonState(); // Включаем кнопку
     } else if (sector.type === "zero") {
         lastResultEl.textContent = "Выпало: 0 — пропуск хода.";
         cycleToNextPlayer();
         setKeyboardEnabled(false);
+        updateSpinButtonState(); // Включаем кнопку
     } else {
         lastResultEl.textContent = "Выпал пустой сектор — ничего не происходит.";
         setKeyboardEnabled(false);
+        updateSpinButtonState(); // Включаем кнопку
     }
 }
 
@@ -572,10 +728,26 @@ function renderPrizesEditor() {
             renderPrizesTable();
         });
 
+        const removeBtn = document.createElement("button");
+        removeBtn.className = "prize-remove";
+        removeBtn.textContent = "✕";
+        removeBtn.addEventListener("click", () => {
+            PRIZES.splice(index, 1);
+            renderPrizesEditor();
+            renderPrizesTable();
+        });
+
         row.appendChild(pointsInput);
         row.appendChild(nameInput);
+        row.appendChild(removeBtn);
         prizesEditor.appendChild(row);
     });
+}
+
+function addPrize() {
+    PRIZES.push({ points: 0, name: "" });
+    renderPrizesEditor();
+    renderPrizesTable();
 }
 
 function renderPrizesTable() {
@@ -617,6 +789,7 @@ function saveConfigToFile() {
 }
 
 function loadConfigFromFile(file) {
+    if (!file) return;
     const reader = new FileReader();
     reader.onload = e => {
         try {
@@ -656,8 +829,10 @@ function loadConfigFromFile(file) {
             renderPrizesTable();
             refreshKeyboardDisabled();
             lastResultEl.textContent = "Конфигурация загружена.";
+            fileStatus.textContent = `Загружен: ${file.name}`;
         } catch (err) {
             alert("Не удалось загрузить конфигурацию: " + err.message);
+            fileStatus.textContent = "Ошибка загрузки";
         }
     };
     reader.readAsText(file, "utf-8");
@@ -667,7 +842,7 @@ function loadConfigFromFile(file) {
 // Инициализация
 // ---------------------
 
-function initSidebarFields() {
+function initSettingsFields() {
     wordInput.value = currentWord;
     hintInput.value = currentHint;
 }
@@ -711,12 +886,43 @@ function initEvents() {
         saveConfigToFile();
     });
 
+    settingsButton.addEventListener("click", () => {
+        initSettingsFields();
+        settingsModal.classList.remove("hidden");
+    });
+
+    closeSettingsBtn.addEventListener("click", () => {
+        settingsModal.classList.add("hidden");
+    });
+
+    settingsModal.querySelector(".modal-backdrop").addEventListener("click", () => {
+        settingsModal.classList.add("hidden");
+    });
+
+    addPrizeBtn.addEventListener("click", () => {
+        addPrize();
+    });
+
     loadConfigInput.addEventListener("change", (e) => {
         const file = e.target.files[0];
         if (file) {
-            loadConfigFromFile(file);
+            fileStatus.textContent = `Выбран: ${file.name}`;
+        } else {
+            fileStatus.textContent = "Файл не выбран";
         }
-        e.target.value = "";
+    });
+
+    loadFileBtn.addEventListener("click", () => {
+        const file = loadConfigInput.files[0];
+        if (file) {
+            loadConfigFromFile(file);
+        } else {
+            alert("Сначала выберите файл");
+        }
+    });
+
+    newGameBtn.addEventListener("click", () => {
+        startNewGame();
     });
 }
 
@@ -726,9 +932,10 @@ function initGame() {
     renderHint();
     buildKeyboard();
     refreshKeyboardDisabled();
-    initSidebarFields();
+    initSettingsFields();
     renderPrizesEditor();
     drawWheel();
+    updateSpinButtonState(); // Инициализируем состояние кнопки
 
     // создадим хотя бы одного игрока
     addPlayer();

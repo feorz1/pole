@@ -9,90 +9,110 @@
 <body>
 <div class="app">
     <header class="header">
-        <h1>Поле чудес</h1>
+        <div class="header-content">
+            <span class="wheel-icon">⚫</span>
+            <h1>ПОЛЕ ЧУДЕС</h1>
+            <span class="wheel-icon">⚫</span>
+        </div>
+        <button id="settingsButton" class="btn btn-settings">Настройки</button>
     </header>
 
     <main class="main">
-        <!-- ЛЕВАЯ КОЛОНКА: игроки + игра -->
-        <section class="left-column">
-            <!-- Игроки -->
-            <section class="players-bar">
-                <div id="playersContainer" class="players-row">
+        <!-- Игроки (полная ширина) -->
+        <section class="players-section">
+            <div class="card">
+                <div class="players-header">
+                    <h2 class="card-title">Игроки</h2>
+                    <button id="addPlayerBtn" class="btn btn-add-player">+ Добавить игрока</button>
+                </div>
+                <div id="playersContainer" class="players-container">
                     <!-- игроки рендерятся из JS -->
                 </div>
-                <button id="addPlayerBtn" class="btn btn-add-player">+ Игрок</button>
-            </section>
+            </div>
+        </section>
 
-            <!-- Игровое поле -->
-            <section class="game-area">
-                <div class="hint-container">
-                    <div class="hint-label">Загадка:</div>
-                    <div id="hintText" class="hint-text"></div>
+        <!-- Основной контент: слева очки+барабан, справа задание -->
+        <section class="game-section">
+            <!-- ЛЕВАЯ КОЛОНКА: очки и барабан -->
+            <section class="left-column">
+                <!-- Карточка очков -->
+                <div class="card">
+                    <h2 class="card-title">Ваши очки</h2>
+                    <div id="scoreValue" class="score-display">0</div>
                 </div>
 
-                <div id="wordContainer" class="word-container"></div>
-
-                <div class="score-and-wheel">
-                    <div class="score-panel">
-                        <div class="score-label">Очки игрока:</div>
-                        <div id="scoreValue" class="score-value">0</div>
-                    </div>
-
+                <!-- Карточка барабана -->
+                <div class="card">
                     <div class="wheel-wrapper">
                         <canvas id="wheelCanvas" width="320" height="320"></canvas>
                         <div class="wheel-pointer"></div>
-                        <button id="spinButton" class="btn btn-primary">Крутить барабан</button>
-                        <div id="lastResult" class="spin-result"></div>
                     </div>
+                    <button id="spinButton" class="btn btn-primary">Крутить барабан</button>
+                    <div id="lastResult" class="spin-result"></div>
+                    <button id="prizesButton" class="btn btn-yellow">Таблица призов</button>
                 </div>
+            </section>
 
-                <div id="keyboard" class="keyboard"></div>
-
-                <div class="controls-row">
-                    <button id="prizesButton" class="btn btn-secondary">Таблица призов</button>
+            <!-- ПРАВАЯ КОЛОНКА: задание и клавиатура -->
+            <section class="right-column">
+                <div class="card card-large">
+                    <h2 class="card-title">Задание:</h2>
+                    <div id="hintText" class="hint-text"></div>
+                    
+                    <div id="wordContainer" class="word-container"></div>
+                    
+                    <div id="keyboard" class="keyboard"></div>
                 </div>
             </section>
         </section>
+    </main>
 
-        <!-- ПРАВАЯ КОЛОНКА: сайдбар -->
-        <aside class="sidebar">
-            <h2>Настройки игры</h2>
+    <!-- Модальное окно настроек -->
+    <div id="settingsModal" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content settings-modal">
+            <button id="closeSettingsBtn" class="modal-close">✕</button>
+            <h2>Настройки</h2>
 
-            <section class="sidebar-section">
-                <h3>Слово и загадка</h3>
-                <label class="field-label">Загаданное слово (русские буквы):</label>
-                <input id="wordInput" class="input" type="text" />
-
-                <label class="field-label">Загадка / вопрос:</label>
-                <textarea id="hintInput" class="textarea" rows="3"></textarea>
-
-                <button id="applyWordBtn" class="btn btn-small">Применить</button>
+            <section class="settings-section">
+                <h3>Загаданное слово</h3>
+                <input id="wordInput" class="input" type="text" placeholder="Введите слово" />
+                <textarea id="hintInput" class="textarea" rows="3" placeholder="Введите подсказку"></textarea>
+                <button id="applyWordBtn" class="btn btn-primary">Применить слово</button>
             </section>
 
-            <section class="sidebar-section">
-                <h3>Призы (редактирование)</h3>
+            <section class="settings-section">
+                <h3>Призы</h3>
                 <div id="prizesEditor" class="prizes-editor">
                     <!-- строки призов рендерятся из JS -->
                 </div>
+                <button id="addPrizeBtn" class="btn btn-add-prize">+ Добавить приз</button>
             </section>
 
-            <section class="sidebar-section">
-                <h3>Сохранение / загрузка</h3>
-                <div class="sidebar-buttons">
-                    <button id="saveConfigBtn" class="btn btn-small">Сохранить в TXT</button>
-                    <label class="file-label">
-                        Загрузить TXT
-                        <input id="loadConfigInput" type="file" accept=".txt,.json,text/plain" />
-                    </label>
-                </div>
+            <section class="settings-section">
+                <h3>Сохранение/Загрузка</h3>
+                <button id="saveConfigBtn" class="btn btn-primary btn-save">
+                    <span class="btn-icon">💾</span>
+                    Сохранить в файл
+                </button>
+                <label class="file-label">
+                    <input id="loadConfigInput" type="file" accept=".txt,.json,text/plain" />
+                    <span class="file-label-text">Выберите файл</span>
+                </label>
+                <span id="fileStatus" class="file-status">Файл не выбран</span>
+                <button id="loadFileBtn" class="btn btn-primary btn-load">
+                    <span class="btn-icon">📁</span>
+                    Загрузить из файла
+                </button>
             </section>
-        </aside>
-    </main>
+        </div>
+    </div>
 
     <!-- Модалка с призами -->
     <div id="prizesModal" class="modal hidden">
         <div class="modal-backdrop"></div>
         <div class="modal-content">
+            <button id="closePrizesModal" class="modal-close">✕</button>
             <h2>Таблица призов</h2>
             <table class="prizes-table">
                 <thead>
@@ -105,7 +125,37 @@
                 <!-- заполняется из PRIZES -->
                 </tbody>
             </table>
-            <button id="closePrizesModal" class="btn btn-small">Закрыть</button>
+        </div>
+    </div>
+
+    <!-- Модалка победы -->
+    <div id="winModal" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content win-modal">
+            <div class="win-title">
+                <span class="confetti">🎉</span>
+                <h2>ПОЗДРАВЛЯЕМ!</h2>
+                <span class="confetti">🎉</span>
+            </div>
+            <div class="win-info">
+                <p class="win-word">Вы угадали слово: <strong id="winWordText"></strong></p>
+                <p class="win-score">Набрано очков: <strong id="winScoreText"></strong></p>
+            </div>
+            <div class="win-prizes">
+                <p class="prizes-label">Доступные призы:</p>
+                <table class="prizes-table win-prizes-table">
+                    <thead>
+                    <tr>
+                        <th>Очки</th>
+                        <th>Приз</th>
+                    </tr>
+                    </thead>
+                    <tbody id="winPrizesTableBody">
+                    <!-- заполняется из PRIZES -->
+                    </tbody>
+                </table>
+            </div>
+            <button id="newGameBtn" class="btn btn-primary btn-new-game">Начать новую игру</button>
         </div>
     </div>
 </div>
